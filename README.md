@@ -40,26 +40,6 @@ This project is a simple Node.js backend using Express and MongoDB. It includes 
   ```
 The server will be running on http://localhost:3000.
 
-## Endpoints
-
-**POST /user/login**\
-User login and return a RSA256 JWT token that expires in 1 hour.
- 
-**GET /document/findAll/:collectionName**\
-Fetches all documents from the specified collection.
-
-**GET /document/findOne/:collectionName/:documentId**\
-Fetches a single document by ID from the specified collection.
-
-**POST /document/createorupdate/:collectionName**\
-Inserts a new document into the specified collection.
-
-**PUT /document/updateOne/:collectionName/:documentId**\
-Updates an existing document by ID in the specified collection.
-
-**DELETE /document/deleteOne/:collectionName/:documentId**\
-Deletes a document by ID from the specified collection.
-
 ## Project Structure
 
 ``` 

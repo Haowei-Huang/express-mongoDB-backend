@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import documentRoutes from './routes/document.routes.js';
 import userRoutes from './routes/user.routes.js';
+import bookingRoutes from './routes/booking.routes.js';
+import hotelRoutes from './routes/hotel.routes.js';
 import { expressjwt } from "express-jwt";
 
 //app
@@ -13,23 +15,25 @@ app.use(cors());
 
 app.use('/user', userRoutes);
 
-app.use(
-    expressjwt({
-        secret: Buffer.from(process.env.JWT_PUBLIC, "base64"),
-        algorithms: ['RS256'],
-        issuer: 'express-mongodb-backend',
-        audience: 'simplii-book',
-        onExpired: async (req, err) => {
-            if (new Date() - err.inner.expiredAt < 5000) {
-                return;
-            }
-            throw err;
-        }
-    })
-)
+// app.use(
+//     expressjwt({
+//         secret: Buffer.from(process.env.JWT_PUBLIC, "base64"),
+//         algorithms: ['RS256'],
+//         issuer: 'express-mongodb-backend',
+//         audience: 'simplii-book',
+//         onExpired: async (req, err) => {
+//             if (new Date() - err.inner.expiredAt < 5000) {
+//                 return;
+//             }
+//             throw err;
+//         }
+//     })
+// )
 
 // routes
 app.use('/document', documentRoutes);
+app.use('/booking', bookingRoutes);
+app.use('/hotel', hotelRoutes);
 
 app.use((err, req, res, next) => {
     if (err.name === 'UnauthorizedError'

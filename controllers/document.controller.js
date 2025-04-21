@@ -3,64 +3,71 @@ import db from '../server/db.js';
 
 const findAll = async (req, res) => {
     console.log("findAll endpoint");
-    const collectionName = req.params.collectionName;
-    const collectionExist = await collectionExists(collectionName);
-    if (!collectionExist) {
-        return res.status(404).send({ message: 'Collection ' + collectionName + ' does not exist' });
-    }
-    const collection = await db.collection(collectionName);
-    const result = await collection.find().toArray();
-    res.status(200).send({ data: result });
+    try {
 
+        const collectionName = req.params.collectionName;
+        const collectionExist = await collectionExists(collectionName);
+        if (!collectionExist) {
+            return res.status(404).json({ message: 'Collection ' + collectionName + ' does not exist' });
+        }
+        const result = await db.collection(collectionName).find().toArray();
+        res.status(200).json({ data: result });
+    } catch (error) {
+        console.log("Error in findAll:", error);
+        res.status(500).json({ message: error.message });
+    }
 };
 
 const findById = async (req, res) => {
     console.log("findById endpoint");
-    const collectionName = req.params.collectionName;
-    const collectionExist = await collectionExists(collectionName);
-    if (!collectionExist) {
-        return res.status(404).send({ message: 'Collection ' + collectionName + ' does not exist' });
-    }
-
-    const _id = new ObjectId(req.params.documentId);
-    const collection = await db.collection(collectionName);
-    const result = await collection.findOne({ _id: _id });
-    res.status(200).send({ data: result });
-};
-
-const insertOne = async (req, res) => {
     try {
-        console.log("insertOne endpoint");
+
         const collectionName = req.params.collectionName;
         const collectionExist = await collectionExists(collectionName);
         if (!collectionExist) {
-            db.createCollection(collectionName);
+            return res.status(404).json({ message: 'Collection ' + collectionName + ' does not exist' });
         }
 
-        const collection = await db.collection(collectionName);
+        const _id = new ObjectId(req.params.documentId);
+        const result = await db.collection(collectionName).findOne({ _id: _id });
+        res.status(200).json({ data: result });
+    } catch (error) {
+        console.log("Error in findById:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const insertOne = async (req, res) => {
+    console.log("insertOne endpoint");
+    try {
+        // when collection doesn't exist, insertOne will create it
+        const collectionName = req.params.collectionName;
+
+        const collection = db.collection(collectionName);
         const result = await collection.insertOne(req.body);
-        console.log(result);
+
         const documentCreated = await collection.findOne({ _id: result.insertedId });
         if (!documentCreated) {
             return res.status(500).json({ message: 'Failed to create document with id ' + _id.toString() });
         }
-        res.status(200).send(documentCreated);
+
+        res.status(200).json(documentCreated);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 }
 
 const updateById = async (req, res) => {
+    console.log("updateById endpoint");
     try {
-        console.log("updateById endpoint");
         const collectionName = req.params.collectionName;
         const collectionExist = await collectionExists(collectionName);
         if (!collectionExist) {
-            return res.status(404).send({ message: 'Collection ' + collectionName + ' does not exist' });
+            return res.status(404).json({ message: 'Collection ' + collectionName + ' does not exist' });
         }
 
         const _id = new ObjectId(req.params.documentId);
-        const collection = await db.collection(collectionName);
+        const collection = db.collection(collectionName);
         const documentFound = await collection.findOne({ _id: _id });
         if (!documentFound) {
             return res.status(404).json({ message: 'document not found for id ' + _id.toString() });
@@ -69,23 +76,23 @@ const updateById = async (req, res) => {
         delete req.body._id;
         await collection.replaceOne({ _id: _id }, req.body);
         const updatedDocument = await collection.findOne({ _id: _id });
-        res.status(200).send(updatedDocument);
+        res.status(200).json(updatedDocument);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
 const deleteById = async (req, res) => {
+    console.log("deleteById endpoint");
     try {
-        console.log("deleteById endpoint");
         const collectionName = req.params.collectionName;
         const collectionExist = await collectionExists(collectionName);
         if (!collectionExist) {
-            return res.status(404).send({ message: 'Collection ' + collectionName + ' does not exist' });
+            return res.status(404).json({ message: 'Collection ' + collectionName + ' does not exist' });
         }
 
         const _id = new ObjectId(req.params.documentId);
-        const collection = await db.collection(collectionName);
+        const collection = db.collection(collectionName);
         const documentFound = await collection.findOne({ _id: _id });
         if (!documentFound) {
             return res.status(404).json({ message: 'document not found for id ' + _id.toString() });
@@ -97,7 +104,25 @@ const deleteById = async (req, res) => {
         if (documentDeleted) {
             return res.status(500).json({ message: 'Failed to delete document with id ' + _id.toString() });
         }
-        res.status(200).send({ message: 'Successfully deleted document with id ' + _id.toString() });
+        res.status(200).json({ message: 'Successfully deleted document with id ' + _id.toString() });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+const countDocuments = async (req, res) => {
+    console.log("countDocuments endpoint");
+    try {
+        const collectionName = req.params.collectionName;
+        const collectionExist = await collectionExists(collectionName);
+        if (!collectionExist) {
+            return res.status(404).json({ message: 'Collection ' + collectionName + ' does not exist' });
+        }
+
+        const collection = db.collection(collectionName);
+        const count = await collection.countDocuments();
+        console.log(count);
+        res.status(200).json({ count: count });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -105,8 +130,7 @@ const deleteById = async (req, res) => {
 
 async function collectionExists(collectionName) {
     const collections = await db.listCollections().toArray();//.map(collection => collection.name);
-    //console.log(collections);
     return collections.some(collection => collection.name === collectionName);
 }
 
-export { findAll, findById, insertOne, updateById, deleteById };
+export { findAll, findById, insertOne, updateById, deleteById, collectionExists, countDocuments };

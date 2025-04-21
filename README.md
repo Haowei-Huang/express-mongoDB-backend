@@ -66,20 +66,21 @@ Deletes a document by ID from the specified collection.
 ├── controllers
 │   └── document.controller.js
 |   └── user.controller.js
+|   └── hotel.controller.js
+|   └── booking.controller.js
 ├── routes
 │   └── document.routes.js
 |   └── user.routes.js
+|   └── hotel.routes.js
+|   └── booking.routes.js
 ├── server
 │   └── db.js
 ├── .env
 ├── package.json
 └── server.js
 ```
-
-- **controllers/document.controller.js**: Contains the logic for handling user authentication.
-- **controllers/document.controller.js**: Contains the logic for handling requests and interacting with the database.
-- **routes/document.routes.js**: Defines the routes and associates them with controller functions.
-- **routes/document.routes.js**: Routes for user authentication and controller functions.
+- **controllers/\*.controller.js**: Contains the logic for handling requests and interacting with the database.
+- **routes/\*.routes.js**: Defines the routes and associates them with controller functions.
 - **server/db.js**: Establishes the connection to the MongoDB database.
 - **server.js**: Sets up the Express server, middleware, and routes.
 - **jwt.js**: Helper class to generate jwt token.

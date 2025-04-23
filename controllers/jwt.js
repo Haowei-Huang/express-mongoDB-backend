@@ -55,7 +55,7 @@ export function verifyRefreshToken(token) {
             algorithms: ['RS256']
         });
         console.log("token is valid");
-        const newAccessToken = generateAccessToken(decoded.userEmail);
+        const newAccessToken = generateAccessToken(decoded.email);
         return { verified: true, accessToken: newAccessToken, email: decoded.email };
     } catch (err) {
         console.log(err.name, err.message);

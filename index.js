@@ -4,7 +4,7 @@ import documentRoutes from './routes/document.routes.js';
 import userRoutes from './routes/user.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import hotelRoutes from './routes/hotel.routes.js';
-import { expressjwt } from "express-jwt";
+import { authenticationMiddleware } from './controllers/user.controller.js';
 
 //app
 const app = express();
@@ -15,20 +15,8 @@ app.use(cors());
 
 app.use('/user', userRoutes);
 
-// app.use(
-//     expressjwt({
-//         secret: Buffer.from(process.env.JWT_PUBLIC, "base64"),
-//         algorithms: ['RS256'],
-//         issuer: 'express-mongodb-backend',
-//         audience: 'simplii-book',
-//         onExpired: async (req, err) => {
-//             if (new Date() - err.inner.expiredAt < 5000) {
-//                 return;
-//             }
-//             throw err;
-//         }
-//     })
-// )
+// jwt based middleware with access token and refresh token
+app.use(authenticationMiddleware);
 
 // routes
 app.use('/document', documentRoutes);

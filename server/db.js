@@ -4,6 +4,11 @@ dotenv.config();
 
 const connectionString = process.env.MONGODB_URL;
 
+// Validate connection string
+if (!connectionString) {
+    throw new Error('Please provide MONGODB_URL in your .env file');
+}
+
 const client = new MongoClient(connectionString);
 let conn;
 

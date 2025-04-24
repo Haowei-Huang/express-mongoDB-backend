@@ -30,12 +30,12 @@ function authenticationMiddleware(req, res, next) {
         if (result.verified) {
             // get new refresh token and access token
             const newAccessToken = generateAccessToken(result.email);
-            const newRefreshToken = generateRefreshToken(result.email);
+            const newRefreshToken = generateRefreshToken(result.email); endpoint
 
             res.cookie('refreshToken', newRefreshToken, {
                 httpOnly: true,
-                sameSite: 'None',
-                secure: true,
+                // sameSite: 'None', // it has to be used with secure: true, which requires https with ssl certificate
+                //secure: true,
                 maxAge: 1 * 60 * 60 * 1000 // 1 hours
             });
 
@@ -49,7 +49,7 @@ function authenticationMiddleware(req, res, next) {
 // login with email and password
 // return access token in body, refresh token in http-only cookies
 const login = async (req, res) => {
-    console.log("login endpoint");
+    console.log("login endpoint: ");
     try {
         // case insensitive email check
         const user = await db.collection('users').findOne({ email: req.body.email.toLowerCase() });
@@ -66,8 +66,8 @@ const login = async (req, res) => {
         // this will prevent the cookie being read by javascript to prevent XSS attack
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            sameSite: 'None',
-            secure: true,
+            // sameSite: 'None', // it has to be used with secure: true, which requires https with ssl certificate
+            //secure: true,
             maxAge: 1 * 60 * 60 * 1000 // 1 hours
         });
 
@@ -93,8 +93,8 @@ const refreshAccessToken = async (req, res) => {
             // Assign refresh token in http-only cookie
             res.cookie('refreshToken', newRefreshToken, {
                 httpOnly: true,
-                sameSite: 'None',
-                secure: true,
+                //sameSite: 'None', // it has to be used with secure: true, which requires https with ssl certificate
+                // secure: true,
                 maxAge: 1 * 60 * 60 * 1000 // 1 hours
             });
 

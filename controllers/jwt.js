@@ -6,7 +6,7 @@ export function generateAccessToken(userEmail) {
     const token = jwt.sign({ email: userEmail },
         Buffer.from(process.env.JWT_ACCESS_PRIVATE, "base64"),
         {
-            expiresIn: '10m',
+            expiresIn: '15m',
             algorithm: 'RS256',
             issuer: 'express-mongodb-backend',
             audience: 'simplii-book'
@@ -38,8 +38,7 @@ export function verifyAccessToken(token) {
         console.log("Access token is valid");
         return { verified: true, email: decoded.email }
     } catch (err) {
-        console.log("error in verifyAccessToken");
-        console.log(err.name, err.message);
+        console.log("Error in verifyAccessToken: ", err.name, err.message);
         return {
             verified: false,
             error: {
@@ -62,8 +61,7 @@ export function verifyRefreshToken(token) {
         const newAccessToken = generateAccessToken(decoded.email);
         return { verified: true, accessToken: newAccessToken, email: decoded.email };
     } catch (err) {
-        console.log("error in verifyRefreshToken");
-        console.log(err.name, err.message);
+        console.log("Error in verifyRefreshToken: ", err.name, err.message);
         return {
             verified: false,
             error: {

@@ -5,6 +5,7 @@ import userRoutes from './routes/user.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import hotelRoutes from './routes/hotel.routes.js';
 import { authenticationMiddleware } from './controllers/user.controller.js';
+import cookieParser from 'cookie-parser';
 
 //app
 const app = express();
@@ -16,6 +17,8 @@ const corsOptions = {
     origin: 'http://localhost:3001'
 }
 app.use(cors(corsOptions));
+// get http-only cookies for refresh token
+app.use(cookieParser());
 
 app.use('/user', userRoutes);
 

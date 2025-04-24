@@ -6,7 +6,7 @@ export function generateAccessToken(userEmail) {
     const token = jwt.sign({ email: userEmail },
         Buffer.from(process.env.JWT_ACCESS_PRIVATE, "base64"),
         {
-            expiresIn: '15m',
+            expiresIn: '5m',
             algorithm: 'RS256',
             issuer: 'express-mongodb-backend',
             audience: 'simplii-book'

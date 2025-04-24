@@ -3,46 +3,30 @@ import db from '../server/db.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, verifyAccessToken } from './jwt.js';
 import { collectionExists } from './document.controller.js';
 
+// only used for protected routes
+// the front end logic will be: send a request to the protected routes
+// if the access token is valid, the request will be successful
+// otherwise, it will return 401 status code
+// then the front end will send a request to refresh the access token
 function authenticationMiddleware(req, res, next) {
     // get access token from headers, refresh token from cookies
     // the token is usually like 'Bearer <token>'
     const accessToken = req.headers['authorization']?.split(' ')[1];
-    const refreshToken = req.cookies?.refreshToken;
-    // console.log("accessToken:", accessToken);
-    // console.log("refreshToken:", refreshToken);
 
     // if no token provided, deny the request
-    if (!accessToken && !refreshToken) {
-        return res.status(401).json({ message: 'Access denied, no token provided' });
+    if (!accessToken) {
+        console.log("No access token provided");
+        return res.status(401).json({ message: 'Access denied, no access token provided' });
     }
 
     // if access token is provided, verify it
     let result = verifyAccessToken(accessToken);
     if (result.verified) {
+        console.log("Access token is valid");
         next();
     } else {
-        // otherwise, verify refresh token
-        if (!refreshToken) {
-            return res.status(401).json({ message: 'Access denied, no refresh token provided' });
-        }
-
-        const result = verifyRefreshToken(refreshToken);
-        if (result.verified) {
-            // get new refresh token and access token
-            const newAccessToken = generateAccessToken(result.email);
-            const newRefreshToken = generateRefreshToken(result.email); endpoint
-
-            res.cookie('refreshToken', newRefreshToken, {
-                httpOnly: true,
-                // sameSite: 'None', // it has to be used with secure: true, which requires https with ssl certificate
-                //secure: true,
-                maxAge: 1 * 60 * 60 * 1000 // 1 hours
-            });
-
-            return res.status(200).json({ message: 'Authentication successfully', token: newAccessToken });
-        } else {
-            return res.status(401).json({ message: 'Access denied, invalid tokens' });
-        }
+        console.log("Invalid access token");
+        return res.status(401).json({ message: 'Access denied, invalid access tokens' });
     }
 }
 
@@ -87,6 +71,8 @@ const refreshAccessToken = async (req, res) => {
         const result = verifyRefreshToken(refreshToken);
 
         if (result.verified) {
+            console.log("Refresh token is valid");
+
             // Generate new access token and refresh token
             const newAccessToken = generateAccessToken(result.email);
             const newRefreshToken = generateRefreshToken(result.email);
@@ -100,9 +86,11 @@ const refreshAccessToken = async (req, res) => {
 
             return res.status(200).json({ message: 'Refresh access token successfully', token: newAccessToken });
         } else {
+            console.log("Invalid refresh token");
             return res.status(401).json({ message: 'Invalid refresh token' });
         }
     } else {
+        console.log("No refresh token provided");
         return res.status(401).json({ message: 'Access denied, no refresh token found' });
     }
 }

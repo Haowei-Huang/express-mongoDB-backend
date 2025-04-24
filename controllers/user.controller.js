@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 import db from '../server/db.js';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from './jwt.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, verifyAccessToken } from './jwt.js';
 import { collectionExists } from './document.controller.js';
 
 function authenticationMiddleware(req, res, next) {
@@ -8,6 +8,8 @@ function authenticationMiddleware(req, res, next) {
     // the token is usually like 'Bearer <token>'
     const accessToken = req.headers['authorization']?.split(' ')[1];
     const refreshToken = req.cookies?.refreshToken;
+    // console.log("accessToken:", accessToken);
+    // console.log("refreshToken:", refreshToken);
 
     // if no token provided, deny the request
     if (!accessToken && !refreshToken) {

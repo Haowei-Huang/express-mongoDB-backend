@@ -11,7 +11,11 @@ const app = express();
 
 // middle ware
 app.use(express.json())
-app.use(cors());
+const corsOptions = {
+    credentials: true,
+    origin: 'http://localhost:3001'
+}
+app.use(cors(corsOptions));
 
 app.use('/user', userRoutes);
 

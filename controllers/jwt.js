@@ -28,14 +28,17 @@ export function generateRefreshToken(userEmail) {
 
 export function verifyAccessToken(token) {
     try {
-        var decoded = jwt.verify(token, process.env.JWT_ACCESS_PUBLIC, {
-            issuer: 'express-mongodb-backend',
-            audience: 'simplii-book',
-            algorithms: ['RS256']
-        });
-        console.log("token is valid");
+        var decoded = jwt.verify(token,
+            Buffer.from(process.env.JWT_ACCESS_PUBLIC, "base64"),
+            {
+                issuer: 'express-mongodb-backend',
+                audience: 'simplii-book',
+                algorithms: ['RS256']
+            });
+        console.log("Access token is valid");
         return { verified: true, email: decoded.email }
     } catch (err) {
+        console.log("error in verifyAccessToken");
         console.log(err.name, err.message);
         return {
             verified: false,
@@ -49,15 +52,17 @@ export function verifyAccessToken(token) {
 
 export function verifyRefreshToken(token) {
     try {
-        var decoded = jwt.verify(token, process.env.JWT_REFRESH_PUBLIC, {
+        var decoded = jwt.verify(token,
+            Buffer.from(process.env.JWT_REFRESH_PUBLIC, "base64"), {
             issuer: 'express-mongodb-backend',
             audience: 'simplii-book',
             algorithms: ['RS256']
         });
-        console.log("token is valid");
+        console.log("Refresh token is valid");
         const newAccessToken = generateAccessToken(decoded.email);
         return { verified: true, accessToken: newAccessToken, email: decoded.email };
     } catch (err) {
+        console.log("error in verifyRefreshToken");
         console.log(err.name, err.message);
         return {
             verified: false,

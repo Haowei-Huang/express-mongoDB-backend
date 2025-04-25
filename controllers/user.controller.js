@@ -177,15 +177,83 @@ const register = async (req, res) => {
 
 const findUserByEmail = async (req, res) => {
     console.log("findUserByEmail endpoint");
-    const userEmail = req.params.userEmail.toLowerCase();
-    const collectionExist = await collectionExists('users');
-
-    if (!collectionExist) {
-        return res.status(404).json({ message: 'Collection users does not exist' });
+    try {
+        const userEmail = req.params.userEmail.toLowerCase();
+        const result = await db.collection('users').findOne({ email: userEmail });
+        res.status(200).json({ data: result });
+    } catch (error) {
+        console.error("Error in findUserByEmail:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to find user by email' });
     }
-
-    const result = await db.collection('users').findOne({ email: userEmail });
-    res.status(200).json({ data: result });
 }
 
-export { authenticationMiddleware, login, findUserByEmail, register, refreshAccessToken, logout };
+const findAllUsers = async (req, res) => {
+    console.log("findAllUsers endpoint");
+    try {
+        const collectionExist = await collectionExists('users');
+
+        if (!collectionExist) {
+            return res.status(404).json({ message: 'Collection users does not exist' });
+        }
+
+        const result = await db.collection('users').find().toArray();
+        res.status(200).json({ data: result });
+    } catch (error) {
+        console.error("Error in findAllUsers:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to find all users' });
+    }
+}
+
+const findUserById = async (req, res) => {
+    console.log("findUserById endpoint");
+    try {
+        const userId = new ObjectId(req.params.userId);
+        const result = await db.collection('users').findOne({ _id: userId });
+        console.log("result of findUserById: ", result);
+        // return null if not found
+        res.status(200).json({ data: result });
+    } catch (error) {
+        console.error("Error in findUserById:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to find user by id' });
+    }
+}
+
+const updateUser = async (req, res) => {
+    console.log("updateUser endpoint");
+    try {
+        const userId = new ObjectId(req.params.userId);
+        const newUserData = req.body;
+        delete newUserData._id;
+
+        const result = await db.collection('users').replaceOne(
+            { _id: userId },
+            newUserData
+        );
+
+        if (result.matchedCount !== 1) {
+            return res.status(404).json({ message: 'document not found for id' + userId.toString() });
+        }
+
+        const updatedUser = await db.collection('users').findOne({ _id: userId });
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.error("Error in findUserByEmail:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to find user by email' });
+    }
+}
+
+const deleteUser = async (req, res) => {
+    console.log("deleteUser endpoint");
+    try {
+        const userId = new ObjectId(req.params.userId);
+        const result = await db.collection('users').deleteOne({ _id: userId });
+        if (result.deletedCount !== 1) {
+            return res.status(500).json({ message: 'Failed to delete document with id ' + userId.toString() });
+        }
+        res.status(200).json({ message: 'Successfully deleted document with id ' + userId.toString() });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+export { authenticationMiddleware, login, findUserByEmail, findAllUsers, findUserById, updateUser, deleteUser, register, refreshAccessToken, logout };

@@ -26,7 +26,7 @@ app.use('/user', userRoutes);
 app.use(authenticationMiddleware);
 
 // routes
-app.use('/document', documentRoutes);
+// app.use('/document', documentRoutes);
 app.use('/booking', bookingRoutes);
 app.use('/hotel', hotelRoutes);
 

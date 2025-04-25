@@ -14,11 +14,11 @@ export function generateAccessToken(userEmail) {
     return token;
 }
 
-export function generateRefreshToken(userEmail) {
+export function generateRefreshToken(userEmail, timeout = '1h') {
     const token = jwt.sign({ email: userEmail },
         Buffer.from(process.env.JWT_REFRESH_PRIVATE, "base64"),
         {
-            expiresIn: '1h',
+            expiresIn: timeout,
             algorithm: 'RS256',
             issuer: 'express-mongodb-backend',
             audience: 'simplii-book'

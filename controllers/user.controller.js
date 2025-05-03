@@ -2,6 +2,7 @@ import { ExplainVerbosity, ObjectId } from 'mongodb';
 import db from '../server/db.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, verifyAccessToken } from './jwt.js';
 import { collectionExists } from './document.controller.js';
+import bcrypt from 'bcrypt';
 
 // only used for protected routes
 // the front end logic will be: send a request to the protected routes
@@ -39,7 +40,7 @@ const login = async (req, res) => {
         // case insensitive email check
         const user = await db.collection('users').findOne({ email: req.body.email.toLowerCase() });
 
-        if (!user || user.password !== req.body.password) {
+        if (!user || !bcrypt.compare(req.body.password, user.password) && user.password !== req.body.password) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
@@ -165,7 +166,12 @@ const register = async (req, res) => {
         }
 
         // create user
-        const response = await db.collection('users').insertOne(req.body);
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const userData = {
+            ...req.body,
+            password: hashedPassword
+        }
+        const response = await db.collection('users').insertOne(userData);
         const createdUser = await db.collection('users').findOne({ _id: response.insertedId });
 
         return res.status(200).json({ message: 'Register successfully', ...createdUser });

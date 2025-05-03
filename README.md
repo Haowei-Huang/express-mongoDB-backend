@@ -1,6 +1,6 @@
 # CRUD with Node.js, Express and MongoDB
 
-This project is a simple Node.js backend using Express and MongoDB. It includes endpoints for CRUD operations on collections and documents in a MongoDB database.
+This project is a simple Express backend. It includes endpoints for CRUD operations on collections and documents in a MongoDB database, and implemented JWT-based authentication workflow with refreshToken and accessToken, and refreshToken revoke mechanism.
 
 ## How to run
 - Open the command line under the project folder, install the dependencies

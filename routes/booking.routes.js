@@ -1,10 +1,11 @@
 import express from 'express';
+import { authenticationMiddleware } from '../controllers/user.controller.js';
 import { findBookingByUserId, findAllBookings, createBooking } from '../controllers/booking.controller.js';
 const router = express.Router();
 
-router.get('/findBookingByUserId/:userId', findBookingByUserId);
-router.get('/findAllBookings', findAllBookings);
-router.post('/createBooking', createBooking); // Assuming createBooking uses the same controller as login
-
+router.post('/createBooking', createBooking);
+// needs authentication middleware
+router.get('/findBookingByUserId/:userId', authenticationMiddleware, findBookingByUserId);
+router.get('/findAllBookings', authenticationMiddleware, findAllBookings);
 
 export default router;

@@ -12,7 +12,7 @@ const app = express();
 app.use(express.json())
 const corsOptions = {
     credentials: true,
-    origin: process.env.FRONTEND_URL,
+    origin: [process.env.FRONTEND_URL, 'http://localhost:3000']
 }
 app.use(cors(corsOptions));
 app.use(cookieParser()); // get http-only cookies for refresh token

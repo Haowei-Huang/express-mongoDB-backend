@@ -244,8 +244,8 @@ const updateUser = async (req, res) => {
         const updatedUser = await db.collection('users').findOne({ _id: userId });
         res.status(200).json(updatedUser);
     } catch (error) {
-        console.error("Error in findUserByEmail:", error);
-        return res.status(500).json({ message: 'Something went wrong when trying to find user by email' });
+        console.error("Error in updateUser:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to update user' });
     }
 }
 

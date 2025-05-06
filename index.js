@@ -1,25 +1,26 @@
 import express from 'express';
 import cors from 'cors';
-import documentRoutes from './routes/document.routes.js';
 import userRoutes from './routes/user.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import hotelRoutes from './routes/hotel.routes.js';
 import { authenticationMiddleware } from './controllers/user.controller.js';
+import cookieParser from 'cookie-parser';
 
 //app
 const app = express();
 
 // middle ware
 app.use(express.json())
-app.use(cors());
-
-app.use('/user', userRoutes);
-
-// jwt based middleware with access token and refresh token
-app.use(authenticationMiddleware);
+const corsOptions = {
+    credentials: true,
+    origin: 'http://localhost:3001'
+}
+app.use(cors(corsOptions));
+app.use(cookieParser()); // get http-only cookies for refresh token
+// app.use(authenticationMiddleware); // jwt based middleware with access token and refresh token
 
 // routes
-app.use('/document', documentRoutes);
+app.use('/user', userRoutes);
 app.use('/booking', bookingRoutes);
 app.use('/hotel', hotelRoutes);
 

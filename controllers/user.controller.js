@@ -1,58 +1,47 @@
-import { ObjectId } from 'mongodb';
+import { ExplainVerbosity, ObjectId } from 'mongodb';
 import db from '../server/db.js';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from './jwt.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, verifyAccessToken } from './jwt.js';
 import { collectionExists } from './document.controller.js';
+import bcrypt from 'bcrypt';
 
+// only used for protected routes
+// the front end logic will be: send a request to the protected routes
+// if the access token is valid, the request will be successful
+// otherwise, it will return 401 status code
+// then the front end will send a request to refresh the access token
 function authenticationMiddleware(req, res, next) {
     // get access token from headers, refresh token from cookies
     // the token is usually like 'Bearer <token>'
     const accessToken = req.headers['authorization']?.split(' ')[1];
-    const refreshToken = req.cookies?.refreshToken;
+    // console.log("access token: ", accessToken);
 
     // if no token provided, deny the request
-    if (!accessToken && !refreshToken) {
-        return res.status(401).json({ message: 'Access denied, no token provided' });
+    if (!accessToken) {
+        console.log("No access token provided");
+        return res.status(401).json({ message: 'Access denied, no access token provided' });
     }
 
     // if access token is provided, verify it
     let result = verifyAccessToken(accessToken);
     if (result.verified) {
+        console.log("Access token is valid");
         next();
     } else {
-        // otherwise, verify refresh token
-        if (!refreshToken) {
-            return res.status(401).json({ message: 'Access denied, no refresh token provided' });
-        }
-
-        const result = verifyRefreshToken(refreshToken);
-        if (result.verified) {
-            // get new refresh token and access token
-            const newAccessToken = generateAccessToken(result.email);
-            const newRefreshToken = generateRefreshToken(result.email);
-
-            res.cookie('refreshToken', newRefreshToken, {
-                httpOnly: true,
-                sameSite: 'None',
-                secure: true,
-                maxAge: 1 * 60 * 60 * 1000 // 1 hours
-            });
-
-            return res.status(200).json({ message: 'Authentication successfully', token: newAccessToken });
-        } else {
-            return res.status(401).json({ message: 'Access denied, invalid tokens' });
-        }
+        console.log("Invalid access token");
+        return res.status(401).json({ message: 'Access denied, invalid access tokens' });
     }
 }
 
 // login with email and password
 // return access token in body, refresh token in http-only cookies
 const login = async (req, res) => {
-    console.log("login endpoint");
+    console.log("login endpoint: ");
     try {
         // case insensitive email check
         const user = await db.collection('users').findOne({ email: req.body.email.toLowerCase() });
 
-        if (!user || user.password !== req.body.password) {
+        const isPasswordValid = user && await bcrypt.compare(req.body.password, user.password);
+        if (!isPasswordValid) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
@@ -60,12 +49,20 @@ const login = async (req, res) => {
         const accessToken = generateAccessToken(user.email);
         const refreshToken = generateRefreshToken(user.email);
 
+        // store refresh token in database so that we can invalidate it later
+        await db.collection('refreshTokens').insertOne({
+            userId: user._id,
+            token: refreshToken,
+            createdAt: new Date(),
+            expiredAt: new Date(Date.now() + 1 * 60 * 60 * 1000) // 1 hours
+        });
+
         // Assign refresh token in http-only cookie
         // this will prevent the cookie being read by javascript to prevent XSS attack
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            sameSite: 'None',
-            secure: true,
+            // sameSite: 'None', // it has to be used with secure: true, which requires https with ssl certificate
+            //secure: true,
             maxAge: 1 * 60 * 60 * 1000 // 1 hours
         });
 
@@ -79,36 +76,83 @@ const login = async (req, res) => {
 
 // refresh both access token and refresh token when user asks for a new access token
 const refreshAccessToken = async (req, res) => {
-    if (req.cookies?.refreshToken) {
-        const refreshToken = req.cookies.refreshToken;
+    try {
+        const refreshToken = req.cookies?.refreshToken;
+
+        if (!refreshToken) {
+            console.log("No refresh token provided");
+            return res.status(401).json({ message: 'Access denied, no refresh token found' });
+        }
+
+        // check if the refresh token is in the database
+        // only unused refresh token will be stored in the database
+        // we will delete refresh token from the database when it's used to generate new access token
+        // or when the user logs out
+        // or when the refresh token is expired
+        const refreshTokenInDb = await db.collection('refreshTokens').findOne({ token: refreshToken });
+        if (!refreshTokenInDb) {
+            console.log("Refresh token not found in database");
+            return res.status(401).json({ message: 'Invalid refresh token' });
+        }
+
         // verify refresh token
         const result = verifyRefreshToken(refreshToken);
 
-        if (result.verified) {
-            // Generate new access token and refresh token
-            const newAccessToken = generateAccessToken(result.email);
-            const newRefreshToken = generateRefreshToken(result.email);
-            // Assign refresh token in http-only cookie
-            res.cookie('refreshToken', newRefreshToken, {
-                httpOnly: true,
-                sameSite: 'None',
-                secure: true,
-                maxAge: 1 * 60 * 60 * 1000 // 1 hours
-            });
-
-            return res.status(200).json({ message: 'Refresh access token successfully', token: newAccessToken });
-        } else {
+        if (!result.verified) {
+            console.log("Invalid refresh token");
             return res.status(401).json({ message: 'Invalid refresh token' });
         }
-    } else {
-        return res.status(401).json({ message: 'Access denied, no refresh token found' });
+
+        console.log("Refresh token is valid");
+
+        // Generate new access token and refresh token
+        const newAccessToken = generateAccessToken(result.email);
+        const newRefreshToken = generateRefreshToken(result.email);
+
+        // update refresh token in database 
+        await db.collection('refreshTokens').updateOne(
+            {
+                token: refreshToken
+            },
+            {
+                $set: {
+                    token: newRefreshToken,
+                    createdAt: new Date(),
+                    expiredAt: new Date(Date.now() + 1 * 60 * 60 * 1000) // 1 hours
+                }
+            }
+        );
+
+        // Assign refresh token in http-only cookie
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            //sameSite: 'None', // it has to be used with secure: true, which requires https with ssl certificate
+            // secure: true,
+            maxAge: 1 * 60 * 60 * 1000 // 1 hours
+        });
+
+        return res.status(200).json({ message: 'Refresh access token successfully', token: newAccessToken });
+    } catch (error) {
+        console.error("Error in refreshAccessToken:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to refreshAccessToken' });
     }
 }
 
 const logout = async (req, res) => {
-    const { refreshToken } = req.cookies;
-    res.clearCookie("refreshToken");
-    res.sendStatus(204);
+    console.log("logout endpoint: ");
+    const refreshToken = req.cookies?.refreshToken;
+    // delete refresh token from database
+    try {
+        await db.collection('refreshTokens').deleteOne({ token: refreshToken });
+    } catch (error) {
+        console.error("Error in logout:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to logout' });
+    }
+
+    res.clearCookie('refreshToken', {
+        httpOnly: true
+    });
+    return res.status(200).json({ message: 'Logout successfully' });
 }
 
 const register = async (req, res) => {
@@ -123,7 +167,12 @@ const register = async (req, res) => {
         }
 
         // create user
-        const response = await db.collection('users').insertOne(req.body);
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const userData = {
+            ...req.body,
+            password: hashedPassword
+        }
+        const response = await db.collection('users').insertOne(userData);
         const createdUser = await db.collection('users').findOne({ _id: response.insertedId });
 
         return res.status(200).json({ message: 'Register successfully', ...createdUser });
@@ -135,15 +184,83 @@ const register = async (req, res) => {
 
 const findUserByEmail = async (req, res) => {
     console.log("findUserByEmail endpoint");
-    const userEmail = req.params.userEmail.toLowerCase();
-    const collectionExist = await collectionExists('users');
-
-    if (!collectionExist) {
-        return res.status(404).json({ message: 'Collection users does not exist' });
+    try {
+        const userEmail = req.params.userEmail.toLowerCase();
+        const result = await db.collection('users').findOne({ email: userEmail });
+        res.status(200).json({ data: result });
+    } catch (error) {
+        console.error("Error in findUserByEmail:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to find user by email' });
     }
-
-    const result = await db.collection('users').findOne({ email: userEmail });
-    res.status(200).json({ data: result });
 }
 
-export { authenticationMiddleware, login, findUserByEmail, register, refreshAccessToken, logout };
+const findAllUsers = async (req, res) => {
+    console.log("findAllUsers endpoint");
+    try {
+        const collectionExist = await collectionExists('users');
+
+        if (!collectionExist) {
+            return res.status(404).json({ message: 'Collection users does not exist' });
+        }
+
+        const result = await db.collection('users').find().toArray();
+        res.status(200).json({ data: result });
+    } catch (error) {
+        console.error("Error in findAllUsers:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to find all users' });
+    }
+}
+
+const findUserById = async (req, res) => {
+    console.log("findUserById endpoint");
+    try {
+        const userId = new ObjectId(req.params.userId);
+        const result = await db.collection('users').findOne({ _id: userId });
+        console.log("result of findUserById: ", result);
+        // return null if not found
+        res.status(200).json({ data: result });
+    } catch (error) {
+        console.error("Error in findUserById:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to find user by id' });
+    }
+}
+
+const updateUser = async (req, res) => {
+    console.log("updateUser endpoint");
+    try {
+        const userId = new ObjectId(req.params.userId);
+        const newUserData = req.body;
+        delete newUserData._id;
+
+        const result = await db.collection('users').replaceOne(
+            { _id: userId },
+            newUserData
+        );
+
+        if (result.matchedCount !== 1) {
+            return res.status(404).json({ message: 'document not found for id' + userId.toString() });
+        }
+
+        const updatedUser = await db.collection('users').findOne({ _id: userId });
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.error("Error in updateUser:", error);
+        return res.status(500).json({ message: 'Something went wrong when trying to update user' });
+    }
+}
+
+const deleteUser = async (req, res) => {
+    console.log("deleteUser endpoint");
+    try {
+        const userId = new ObjectId(req.params.userId);
+        const result = await db.collection('users').deleteOne({ _id: userId });
+        if (result.deletedCount !== 1) {
+            return res.status(500).json({ message: 'Failed to delete document with id ' + userId.toString() });
+        }
+        res.status(200).json({ message: 'Successfully deleted document with id ' + userId.toString() });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+export { authenticationMiddleware, login, findUserByEmail, findAllUsers, findUserById, updateUser, deleteUser, register, refreshAccessToken, logout };

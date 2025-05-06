@@ -9,12 +9,14 @@ import cookieParser from 'cookie-parser';
 const app = express();
 
 // middle ware
-app.use(express.json())
 const corsOptions = {
     credentials: true,
-    origin: [process.env.FRONTEND_URL, 'http://localhost:3000']
+    origin: [process.env.FRONTEND_URL, 'http://localhost:3000'],
+    method: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin', 'Accept']
 }
 app.use(cors(corsOptions));
+app.use(express.json())
 app.use(cookieParser()); // get http-only cookies for refresh token
 // app.use(authenticationMiddleware); // jwt based middleware with access token and refresh token
 

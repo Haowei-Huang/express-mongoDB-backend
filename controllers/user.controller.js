@@ -40,7 +40,8 @@ const login = async (req, res) => {
         // case insensitive email check
         const user = await db.collection('users').findOne({ email: req.body.email.toLowerCase() });
 
-        if (!user || !bcrypt.compare(req.body.password, user.password) && user.password !== req.body.password) {
+        const isPasswordValid = user && await bcrypt.compare(req.body.password, user.password);
+        if (!isPasswordValid) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 

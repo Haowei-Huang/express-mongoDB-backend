@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import userRoutes from './routes/user.routes.js';
-import bookingRoutes from './routes/booking.routes.js';
-import hotelRoutes from './routes/hotel.routes.js';
+import userRoutes from '../routes/user.routes.js';
+import bookingRoutes from '../routes/booking.routes.js';
+import hotelRoutes from '../routes/hotel.routes.js';
 import cookieParser from 'cookie-parser';
 
 //app

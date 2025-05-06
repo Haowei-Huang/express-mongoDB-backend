@@ -3,7 +3,6 @@ import cors from 'cors';
 import userRoutes from './routes/user.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import hotelRoutes from './routes/hotel.routes.js';
-import { authenticationMiddleware } from './controllers/user.controller.js';
 import cookieParser from 'cookie-parser';
 
 //app
@@ -13,7 +12,7 @@ const app = express();
 app.use(express.json())
 const corsOptions = {
     credentials: true,
-    origin: 'http://localhost:3001'
+    origin: [process.env.FRONTEND_URL, 'http://localhost:3000']
 }
 app.use(cors(corsOptions));
 app.use(cookieParser()); // get http-only cookies for refresh token

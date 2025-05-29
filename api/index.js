@@ -26,13 +26,13 @@ app.use('/booking', bookingRoutes);
 app.use('/hotel', hotelRoutes);
 
 app.use((err, req, res, next) => {
+    console.error(err);
     if (err.name === 'UnauthorizedError'
         || err.name === 'JsonWebTokenError'
         || err.name === 'TokenExpiredError') {
         return res.status(401).send(err.message);
     }
 
-    console.error(err);
     return res.status(500).send('Internal Server Error');
 });
 

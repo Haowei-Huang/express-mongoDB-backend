@@ -18,7 +18,7 @@ router.get('/findAllUsers', authenticationMiddleware, findAllUsers);
 
 router.get('/findUserById/:userId', authenticationMiddleware, findUserById);
 
-router.put('/updateUser/:userId', authenticationMiddleware, updateUser);
+router.post('/updateUser/:userId', authenticationMiddleware, updateUser);
 
 router.delete('/deleteUser/:userId', authenticationMiddleware, deleteUser);
 
